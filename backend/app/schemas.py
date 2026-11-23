@@ -29,3 +29,18 @@ class EntryPayload(BaseModel):
 class ActionPayload(BaseModel):
     action: str
     remark: str | None = None
+
+
+class ArchiveExportPayload(BaseModel):
+    """归档导出申请：发起批次 + 要归档的批次清单。"""
+
+    requester: str = ""
+    batches: list[str] = Field(default_factory=list)
+    note: str = ""
+
+
+class BatchRecheckPayload(BaseModel):
+    """补采完成后的重新校验：提交补齐后的批次行。"""
+
+    operator: str = ""
+    rows: list[dict[str, Any]] = Field(default_factory=list)

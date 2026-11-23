@@ -6,7 +6,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.seed import SEED_ROWS
+from app.seed import SEED_BATCH_ROWS, SEED_ROWS
+
+# 内部行数据表不是业务模块，不出现在模块清单和概览里
+INTERNAL_PREFIXES = ("batch_rows:",)
 
 
 class Store:
@@ -14,9 +17,15 @@ class Store:
         self._tables: dict[str, list[dict[str, Any]]] = {
             name: [dict(row) for row in rows] for name, rows in SEED_ROWS.items()
         }
+        # 批次已封存的行数据：归档导出包的源数据
+        for batch_id, rows in SEED_BATCH_ROWS.items():
+            self._tables[f"batch_rows:{batch_id}"] = [dict(row) for row in rows]
 
     def module_names(self) -> list[str]:
-        return sorted(self._tables)
+        return sorted(
+            name for name in self._tables
+            if not name.startswith(INTERNAL_PREFIXES)
+        )
 
     def rows(self, module: str) -> list[dict[str, Any]]:
         return self._tables.setdefault(module, [])

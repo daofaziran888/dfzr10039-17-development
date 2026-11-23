@@ -8,7 +8,10 @@ class BatchStoreService(BaseModuleService):
     MODULE = "batch_store"
     ENTITY = "采集批次"
     OPERATION_TERM = "采集"
-    LIST_FIELDS = ["批次编号", "来源作业", "数据行数", "存储路径", "压缩格式", "Schema版本", "校验摘要", "入库时间"]
+    LIST_FIELDS = [
+        "批次编号", "来源作业", "数据行数", "存储路径", "压缩格式", "Schema版本",
+        "校验摘要", "入库时间", "归档版本", "归档来源", "归档摘要", "校验结果",
+    ]
     REQUIRED_FIELDS = ["批次编号", "来源作业", "数据行数"]
     STATUS_ORDER = ["采集中", "已落盘", "校验通过", "校验失败"]
     ACTION_RULES = {"触发校验": "已落盘", "标记通过": "校验通过", "标记失败": "校验失败"}

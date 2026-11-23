@@ -1,7 +1,42 @@
 """示例数据：每个模块给几条不同状态的记录，方便起服务后立刻看到内容。"""
 from __future__ import annotations
 
+import json
 from typing import Any
+
+def _sealed_rows(batch_id: str, job_id: str, rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    """批次已封存的行数据：归档导出包中 data.csv 的原始形态。"""
+    return [
+        {
+            "source_url": url,
+            "extract_rule_id": f"CONT-{job_id}",
+            "data": json.dumps(fields, ensure_ascii=False, sort_keys=True),
+        }
+        for url, fields in rows
+    ]
+
+SEED_BATCH_ROWS: dict[str, list[dict[str, str]]] = {
+    "B12": _sealed_rows("B12", "CRAW-JOB-B12", [
+        ("https://news.example.com/b12/article/101", {
+            "title": "城市轨道交通新线开通", "author": "编辑部",
+            "body_hash": "sha256:7a1c9e0d", "publish_date": "2026-11-20"}),
+        ("https://news.example.com/b12/article/102", {
+            "title": "冬季保供进入关键期", "author": "记者站",
+            "body_hash": "sha256:2f5b8c41", "publish_date": "2026-11-21"}),
+        ("https://news.example.com/b12/article/103", {
+            "title": "本地高校发布就业报告", "author": "教育频道",
+            "body_hash": "sha256:9d3e4a77", "publish_date": "2026-11-22"}),
+    ]),
+    # B13 校验失败、正在补采：保留现场数据用于说明拒绝发布的原因
+    "B13": _sealed_rows("B13", "CRAW-JOB-B13", [
+        ("https://news.example.com/b13/article/201", {
+            "title": "商圈客流回升", "author": "商业频道",
+            "body_hash": "sha256:4b6d1f83", "publish_date": "2026-11-22"}),
+        ("https://news.example.com/b13/article/202", {
+            "title": "补采中的页面", "author": "",
+            "body_hash": "", "publish_date": ""}),
+    ]),
+}
 
 SEED_ROWS: dict[str, list[dict[str, Any]]] = {
     "crawl_site": [{'id': 1,
@@ -291,7 +326,43 @@ SEED_ROWS: dict[str, list[dict[str, Any]]] = {
   '压缩格式': '批次存储样例3',
   'Schema版本': '批次存储样例3',
   '校验摘要': '批次存储样例3',
-  '入库时间': '2026-09-03'}],
+  '入库时间': '2026-09-03'},
+ {'id': 4,
+  'status': '校验通过',
+  'pending': False,
+  'abnormal': False,
+  '批次编号': 'B12',
+  '来源作业': 'CRAW-JOB-B12',
+  '数据行数': 3,
+  '存储路径': '/archive/crawl/b12-b13/B12/',
+  '压缩格式': 'zip',
+  'Schema版本': 'v1',
+  '校验摘要': '等待归档导出时写入',
+  '入库时间': '2026-11-22T09:30:00+08:00',
+  '归档版本': '',
+  '归档来源': '',
+  '归档摘要': '',
+  '归档导出': '',
+  '归档时间': '',
+  '校验结果': ''},
+ {'id': 5,
+  'status': '校验失败',
+  'pending': True,
+  'abnormal': True,
+  '批次编号': 'B13',
+  '来源作业': 'CRAW-JOB-B13',
+  '数据行数': 2,
+  '存储路径': '/archive/crawl/b12-b13/B13/',
+  '压缩格式': 'zip',
+  'Schema版本': 'v1',
+  '校验摘要': '补采中，等待重新校验',
+  '入库时间': '2026-11-22T09:50:00+08:00',
+  '归档版本': '',
+  '归档来源': '',
+  '归档摘要': '',
+  '归档导出': '',
+  '归档时间': '',
+  '校验结果': ''}],
     "incr_crawl": [{'id': 1,
   'status': '待初始化',
   'pending': True,

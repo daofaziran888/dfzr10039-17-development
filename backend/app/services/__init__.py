@@ -53,3 +53,10 @@ SERVICES: dict[str, BaseModuleService] = {
 
 def service_for(module: str) -> BaseModuleService | None:
     return SERVICES.get(module)
+
+
+def archive_export_service():
+    """延迟导入归档导出服务，避免 services 包初始化时循环依赖。"""
+    from app.services.archive_export import archive_export
+
+    return archive_export

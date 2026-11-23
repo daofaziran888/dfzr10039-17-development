@@ -16,6 +16,38 @@ from urllib.parse import urlparse
 
 
 # ---------------------------------------------------------------------------
+# 通用摘要工具
+# ---------------------------------------------------------------------------
+
+def canonical_rows(rows: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """把批次行规整成稳定形态：字段排序、值统一为字符串。
+
+    归档包内的 CSV 只能保存字符串；用同一套规整规则计算摘要，才能保证
+    写入归档包、从归档包恢复后得到的批次内容摘要一致。
+    """
+    normalized: list[dict[str, str]] = []
+    for row in rows:
+        normalized.append({
+            key: "" if value is None else str(value)
+            for key, value in sorted(row.items())
+        })
+    return normalized
+
+
+def digest_rows(rows: list[dict[str, Any]]) -> str:
+    """计算批次内容的 SHA-256 摘要（与 CSV 恢复后的结果保持一致）。"""
+    payload = json.dumps(
+        canonical_rows(rows), sort_keys=True, separators=(",", ":"),
+        ensure_ascii=False,
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def digest_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+# ---------------------------------------------------------------------------
 # 枚举
 # ---------------------------------------------------------------------------
 

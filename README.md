@@ -83,3 +83,48 @@ npm run dev
 
 领域：数据工程
 子方向：数据采集、爬虫与RPA
+
+## 归档导出（数据归档模块）
+
+数据归档原有能力只是登记归档策略。归档导出在此基础上把「已请求的采集批次」
+连同归档来源打成交付包，接收方拿到包后可以实际核对：
+
+- `POST /api/data_archive/exports` — 按批次清单打包。只有批次存储里
+  `校验通过` 且行数据可复现的批次会进入压缩包；`校验失败` / 补采中的批次
+  在清单里标为拦截并给出原因，全部被拦截时返回 409。
+- `GET /api/data_archive/exports` — 归档导出记录；`?requester=` 只看某个发起批次。
+- `GET /api/data_archive/exports/request?requester=` — 按发起批次查询已发布、
+  已校验和仍未完成的范围（含 `current_status` / `ready_for_export`）。
+- `GET /api/data_archive/exports/{export_id}` — 包的版本、来源、摘要与批次清单。
+- `GET /api/data_archive/exports/{export_id}/download` — 下载已确认的包。
+  响应带 `ETag` 和 `Accept-Ranges`，重复下载 / 断点续传拿到的都是同一份字节。
+- `POST /api/data_archive/exports/{export_id}/verify` — 上传收到的 zip 核对。
+  检查文件清单、压缩包摘要、`checksums.sha256`、归档版本 / 来源、逐批次内容摘要
+  与行级摘要；任何一项不符返回 `拒收` 并写明检查项。
+- `POST /api/data_archive/batches/{batch_id}/recheck` — 补采完成后提交批次行，
+  字段齐全才允许重新校验通过，之后可再次申请归档。
+- `GET /api/data_archive/exports/ledger` — 可回查的台账（发布 / 下载 / 校验 / 同步）。
+
+压缩包固定包含三份文件：
+
+```text
+manifest.json        版本、来源、发起批次、已发布/拦截清单、逐批次内容摘要
+data.csv             批次行（source_url, extract_rule_id, data）
+checksums.sha256     上述两份文件的字节摘要，可直接 sha256sum -c
+```
+
+发布、校验都会把版本（`1.0/{export_id}`）、来源（`data_archive:{export_id}`）、
+摘要和校验结果回写到批次存储清单。已发布的包按导出编号封存，后续批次变化
+不会改写它：原包字节、适用范围和复核结果都保持不变。
+
+示例（B12 正常、B13 待修）：
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/data_archive/exports \
+  -H 'Content-Type: application/json' \
+  -d '{"requester":"RECV-20261123","batches":["B12","B13"],"note":"接收核查"}'
+curl -OJ http://127.0.0.1:8000/api/data_archive/exports/ARC-20261123-0001/download
+unzip -d pkg ARC-20261123-0001.zip && sha256sum -c pkg/checksums.sha256
+curl -X POST http://127.0.0.1:8000/api/data_archive/exports/ARC-20261123-0001/verify \
+  --data-binary @ARC-20261123-0001.zip
+```
